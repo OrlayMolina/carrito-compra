@@ -1,9 +1,11 @@
 package co.edu.uniquindio.carrito.controller;
 
 import co.edu.uniquindio.carrito.dto.CategoriaDTO;
+import co.edu.uniquindio.carrito.dto.FiltroProductoDTO;
 import co.edu.uniquindio.carrito.dto.MensajeDTO;
 import co.edu.uniquindio.carrito.dto.ProductoDTO;
 import co.edu.uniquindio.carrito.exception.CreacionNoRealizadaException;
+import co.edu.uniquindio.carrito.exception.RecursoNoEncontradoException;
 import co.edu.uniquindio.carrito.service.interfaces.IProductoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -61,5 +63,10 @@ public class ProductoController {
     @GetMapping("/producto/obtener-categorias")
     public ResponseEntity<MensajeDTO<List<CategoriaDTO>>> obtenerCategorias(){
         return ResponseEntity.ok().body(new MensajeDTO<>(false, productoService.obtenerCategorias()));
+    }
+
+    @PostMapping("/producto/filtrar")
+    public ResponseEntity<MensajeDTO<List<ProductoDTO>>> filtrarEventos(@RequestBody FiltroProductoDTO filtroProductoDTO) throws RecursoNoEncontradoException {
+        return ResponseEntity.ok().body(new MensajeDTO<>(false, productoService.filtrarEventos(filtroProductoDTO)));
     }
 }

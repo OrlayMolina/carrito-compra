@@ -1,10 +1,8 @@
 package co.edu.uniquindio.carrito.service.implementation;
 
-import co.edu.uniquindio.carrito.dto.CaracteristicaDTO;
-import co.edu.uniquindio.carrito.dto.CategoriaDTO;
-import co.edu.uniquindio.carrito.dto.DetalleProductoDTO;
-import co.edu.uniquindio.carrito.dto.ProductoDTO;
+import co.edu.uniquindio.carrito.dto.*;
 import co.edu.uniquindio.carrito.exception.CreacionNoRealizadaException;
+import co.edu.uniquindio.carrito.exception.RecursoNoEncontradoException;
 import co.edu.uniquindio.carrito.model.document.Producto;
 import co.edu.uniquindio.carrito.model.enums.Categoria;
 import co.edu.uniquindio.carrito.model.vo.Caracteristica;
@@ -16,10 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.ResourceAccessException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -198,6 +193,73 @@ public class ProductoServiceImpl implements IProductoService {
 
         return Arrays.stream(Categoria.values())
                 .map(ciudad -> new CategoriaDTO(ciudad.name()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductoDTO> filtrarEventos(FiltroProductoDTO filtroProductoDTO) throws RecursoNoEncontradoException {
+
+        String nombre = (filtroProductoDTO.nombre() != null && !filtroProductoDTO.nombre().isEmpty()) ? filtroProductoDTO.nombre() : null;
+        Categoria categoria = filtroProductoDTO.categoria() != null ? Categoria.valueOf(filtroProductoDTO.categoria()) : null;
+
+        List<Producto> productos;
+
+        if (nombre != null && categoria != null) {
+            productos = productoRepository.findProductoByNombreIsLikeIgnoreCaseAndCategoriaPrincipalIsLikeIgnoreCase(nombre, categoria);
+        } else if (nombre != null) {
+            productos = productoRepository.buscarProductoPorNombre(nombre);
+        } else if (categoria != null) {
+            productos = productoRepository.buscarProductoPorCategoria(categoria);
+        } else {
+            throw new RecursoNoEncontradoException("No se proporcionó ningún criterio de búsqueda.");
+        }
+
+        List<DetalleProductoDTO> detalles = new ArrayList<>();
+        for( Producto producto : productos){
+
+            for( DetalleProducto detalleProducto : producto.getDetalle()){
+                DetalleProductoDTO detalleDTO = new DetalleProductoDTO(
+                        detalleProducto.getCodigo(),
+                        detalleProducto.getCantidad(),
+                        detalleProducto.getConcepto(),
+                        detalleProducto.getMonto(),
+                        detalleProducto.getImpuesto(),
+                        detalleProducto.getSubtotal(),
+                        detalleProducto.getFechaEntrega(),
+                        detalleProducto.getFechaPrestamo()
+                );
+
+                detalles.add(detalleDTO);
+            }
+        }
+
+        List<CaracteristicaDTO> caracteristicas = new ArrayList<>();
+        for( Producto producto : productos){
+            for(Caracteristica caracteristica: producto.getCaracteristica()){
+                CaracteristicaDTO caracteristicaDTO = new CaracteristicaDTO(
+                        caracteristica.getCaracteristica(),
+                        caracteristica.getDescripcion()
+                );
+
+                caracteristicas.add(caracteristicaDTO);
+            }
+        }
+
+        return productos.stream()
+                .map(producto -> new ProductoDTO(
+                        producto.getId(),
+                        producto.getCodigo(),
+                        producto.getNombre(),
+                        producto.getCategoriaPrincipal(),
+                        producto.getCategoriaSecundaria(),
+                        producto.getFoto(),
+                        producto.getDescripcion(),
+                        producto.getPrecio(),
+                        producto.getStock(),
+                        detalles,
+                        caracteristicas,
+                        producto.isGarantia(),
+                        producto.getEstado()))
                 .collect(Collectors.toList());
     }
 
